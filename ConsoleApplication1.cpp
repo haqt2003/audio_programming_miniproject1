@@ -347,7 +347,7 @@ void sum(vector<pair<int, double>> vector1, vector<pair<int, double>> vector2) {
     cin.get();
 }
 
-void minus(vector<pair<int, double>> vector1, vector<pair<int, double>> vector2) {
+void minus1(vector<pair<int, double>> vector1, vector<pair<int, double>> vector2) {
     formatVector(vector1, vector2);
     for (int i = 0; i < currentPointsAfterFormat.size(); i++) {
         points3.push_back(make_pair(currentPointsAfterFormat[i].first, currentPointsAfterFormat[i].second - pointsToMathAfterFormat[i].second));
@@ -386,6 +386,7 @@ int main() {
 
         int select;
         cin >> select;
+
         switch (select)
         {
         case 1:
@@ -416,7 +417,7 @@ int main() {
             sum(points, points2);
             break;
         case 7:
-            minus(points, points2);
+            minus1(points, points2);
             break;
         case 8:
             times(points, points2);
