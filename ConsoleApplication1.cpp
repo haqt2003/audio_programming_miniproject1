@@ -19,9 +19,9 @@ vector<pair<int, double>>tempPointsOfVec2;
 vector<pair<int, double>>currentPointsAfterFormat;
 vector<pair<int, double>>pointsToMathAfterFormat;
 double samplingFrequency;
-double sRate;
-double bitsPSmp;
-double numC;
+unsigned int sRate;
+unsigned short nChannels;
+unsigned short bPerSample;
 
 struct WAVHeader {
     char chunkID[4];
@@ -40,7 +40,7 @@ struct WAVHeader {
 };
 
 void readFile() {
-    const char* filename = "fntest.wav"; // Đường dẫn tới file WAV của bạn
+    const char* filename = "lol3.wav"; // Đường dẫn tới file WAV của bạn
     std::ifstream file(filename, std::ios::binary);
 
     if (!file) {
@@ -55,6 +55,9 @@ void readFile() {
         std::cerr << "Error: Unsupported WAV format" << std::endl;
     }
     samplingFrequency = header.sampleRate;
+    sRate = header.sampleRate;
+    nChannels = header.numChannels;
+    bPerSample = header.bitsPerSample;
     // In thông tin từ header
     cout << "______________READCURRENTFILE________________" << endl;
     std::cout << "Number of channels: " << header.numChannels << std::endl;
@@ -110,6 +113,46 @@ void readFile2() {
     for (int i = 0; i < samples.size(); i++) {
         points2.push_back(make_pair(i, samples[i]));
     }
+}
+
+void writeFile(const std::string& filename, const std::vector<int16_t>& samples, unsigned int sampleRate, unsigned short numChannels, unsigned short bitsPerSample) {
+    // Mở file để ghi dữ liệu
+    std::ofstream file(filename, std::ios::binary);
+
+    if (!file) {
+        std::cerr << "Error: Failed to open file for writing: " << filename << std::endl;
+        return;
+    }
+
+    // Tính toán kích thước của dữ liệu âm thanh
+    unsigned int dataSize = samples.size() * sizeof(int16_t);
+
+    // Tạo header cho file WAV
+    WAVHeader header;
+    memcpy(header.chunkID, "RIFF", 4);
+    header.chunkSize = dataSize + 36;
+    memcpy(header.format, "WAVE", 4);
+    memcpy(header.subchunk1ID, "fmt ", 4);
+    header.subchunk1Size = 16;
+    header.audioFormat = 1;
+    header.numChannels = numChannels;
+    header.sampleRate = sampleRate;
+    header.bitsPerSample = bitsPerSample;
+    header.byteRate = sampleRate * numChannels * bitsPerSample / 8;
+    header.blockAlign = numChannels * bitsPerSample / 8;
+    memcpy(header.subchunk2ID, "data", 4);
+    header.subchunk2Size = dataSize;
+
+    // Ghi header vào file
+    file.write(reinterpret_cast<char*>(&header), sizeof(WAVHeader));
+
+    // Ghi dữ liệu âm thanh vào file
+    file.write(reinterpret_cast<const char*>(samples.data()), dataSize);
+
+    // Đóng file sau khi ghi xong
+    file.close();
+
+    std::cout << "Successfully wrote WAV file: " << filename << std::endl;
 }
 
 int findRoot(const vector<pair<int, double>>& nameV) {
@@ -198,7 +241,11 @@ void reverseFile() {
         tempPoints.push_back(make_pair(-points[i].first, points[i].second));
         sort(tempPoints.begin(), tempPoints.begin() + i + 1);
     }
-
+    vector<int16_t> writeVec;
+    for (int i = 0; i < tempPoints.size(); i++) {
+        writeVec.push_back(static_cast<int16_t>(tempPoints[i].second));
+    }
+    writeFile("Reverse.wav", writeVec, sRate, nChannels, bPerSample);
     points.clear();
     points = tempPoints;
 
@@ -369,30 +416,29 @@ void times(vector<pair<int, double>> vector1, vector<pair<int, double>> vector2)
 void lowBandPass(int n, double cutSample) {
     tempPoints.clear();
 
-    vector<pair<int, double>> filter;
+    vector <double> filter;
     for (int i = 0; i < n; i++) {
         double wc = 2 * 3.1416 * cutSample / samplingFrequency;
         double h = (wc / 3.1416) * (sin(wc * (i - (n - 1) / 2.0)) / (wc * (i - (n - 1) / 2.0)));
-        filter.push_back(make_pair(i, h));
+        filter.push_back(h);
     }
 
-    vector<pair<int, double>> op(points.size());
-    for (int i = 0; i < points.size(); i++) {
-        double sum = 0.0;
-        int minIndex = min(i, static_cast<int>(filter.size()) - 1);
-        for (int j = 0; j <= minIndex; j++) {
-            sum += points[i - j].second * filter[j].second;
+    vector <double> op(points.size() + filter.size() - 1, 0);
+    for (int i = 0; i < filter.size(); i++) {
+        for (int j = 0; j < points.size(); j++) {
+            op[i+j] += filter[i] * points[j].second;
         }
-        op[i] = make_pair(i, sum);
     }
-
-    tempPoints = op;
-
+    vector<int16_t> writeVec;
+    for (int i = 0; i < op.size(); i++) {
+        writeVec.push_back(static_cast<int16_t>(op[i]));
+    }
+    writeFile("LPF.wav", writeVec, sRate, nChannels, bPerSample);
     points.clear();
     points = tempPoints;
 
     gp << "plot '-' with lines" << endl;
-    gp.send(tempPoints);
+    gp.send(op);
     cin.get();
 }
 
@@ -630,6 +676,7 @@ int main() {
         std::cout << "              14. Fade in\n";
         std::cout << "              15. Fade out\n";
         std::cout << "              16. Flangler\n";
+        std::cout << "              17. Quit\n";
         std::cout << "__________________________________________________________\n";
         std::cout << "Select: ";
 
@@ -723,6 +770,8 @@ int main() {
             int duration1;
             cin >> duration1;
             fadeOut(duration1);
+            break;
+        case 16:
             break;
         default:
             break;
