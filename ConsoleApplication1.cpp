@@ -409,6 +409,7 @@ void upSample(int n) {
 }
 
 void sum(vector<pair<int, double>> vector1, vector<pair<int, double>> vector2) {
+    points3.clear();
     formatVector(vector1, vector2);
     for (int i = 0; i < currentPointsAfterFormat.size(); i++) {
         points3.push_back(make_pair(currentPointsAfterFormat[i].first, currentPointsAfterFormat[i].second + pointsToMathAfterFormat[i].second));
@@ -425,6 +426,7 @@ void sum(vector<pair<int, double>> vector1, vector<pair<int, double>> vector2) {
 }
 
 void times(vector<pair<int, double>> vector1, vector<pair<int, double>> vector2) {
+    points3.clear();
     formatVector(vector1, vector2);
     for (int i = 0; i < currentPointsAfterFormat.size(); i++) {
         points3.push_back(make_pair(currentPointsAfterFormat[i].first, currentPointsAfterFormat[i].second * pointsToMathAfterFormat[i].second));
@@ -440,6 +442,36 @@ void times(vector<pair<int, double>> vector1, vector<pair<int, double>> vector2)
     cin.get();
 }
 
+void amplifySignal(double amplificationFactor) {
+    tempPoints.clear();
+    tempPoints = points;
+    for (auto& sample : tempPoints) {
+        sample.second *= amplificationFactor;
+    }
+    vector<int16_t> writeVec;
+    for (int i = 0; i < tempPoints.size(); i++) {
+        writeVec.push_back(static_cast<int16_t>(tempPoints[i].second));
+    }
+    writeFile("Amplify Signal.wav", writeVec, sRate, nChannels, bPerSample);
+    points.clear();
+    points = tempPoints;
+    gp << "plot '-' with lines" << endl;
+    gp.send(tempPoints);
+    cin.get();
+}
+
+vector <double> convolution(const vector <double>& v1,const vector<double>& v2) {
+    vector<double> tmp(v1.size() + v2.size() - 1, 0);
+
+    for (int i = 0; i < v1.size(); i++) {
+        for (int j = 0; j < v2.size(); j++) {
+            tmp[i + j] += v1[i] * v2[j];
+        }
+    }
+    
+    return tmp;
+}
+
 void LPF(int n, double cutSample) {
     tempPoints.clear();
 
@@ -450,12 +482,15 @@ void LPF(int n, double cutSample) {
         filter.push_back(h);
     }
 
+    // Nhân chập
     vector <double> op(points.size() + filter.size() - 1, 0);
     for (int i = 0; i < filter.size(); i++) {
         for (int j = 0; j < points.size(); j++) {
             op[i+j] += filter[i] * points[j].second;
         }
     }
+    
+    // Ghi file
     vector<int16_t> writeVec;
     for (int i = 0; i < op.size(); i++) {
         writeVec.push_back(static_cast<int16_t>(op[i]));
@@ -464,6 +499,7 @@ void LPF(int n, double cutSample) {
     points.clear();
     points = tempPoints;
 
+    // Vẽ đồ thị
     gp << "plot '-' with lines" << endl;
     gp.send(op);
     cin.get();
@@ -701,15 +737,16 @@ int main() {
         std::cout << "              5. Up sampling\n";
         std::cout << "              6. Sum\n";
         std::cout << "              7. Times\n";
-        std::cout << "              8. Low band pass\n";
-        std::cout << "              9. High band pass\n";
-        std::cout << "              10. Band stop\n";
-        std::cout << "              11. Band pass\n";
-        std::cout << "              12. Echo\n";
-        std::cout << "              13. Reverb\n";
-        std::cout << "              14. Fade in\n";
-        std::cout << "              15. Fade out\n";
-        std::cout << "              16. Quit\n";
+        std::cout << "              8. Amplify signal\n";
+        std::cout << "              9. LPF\n";
+        std::cout << "              10. HPF\n";
+        std::cout << "              11. BSF\n";
+        std::cout << "              12. BPF\n";
+        std::cout << "              13. Echo\n";
+        std::cout << "              14. Reverb\n";
+        std::cout << "              15. Fade in\n";
+        std::cout << "              16. Fade out\n";
+        std::cout << "              17. Quit\n";
         std::cout << "__________________________________________________________\n";
         std::cout << "Select: ";
 
@@ -749,20 +786,25 @@ int main() {
             times(points, points2);
             break;
         case 8:
+            double k;
+            cin >> k;
+            amplifySignal(k);
+            break;
+        case 9:
             cout << "Enter filterOrder and cutoffFrequency value:" << endl;
             int n1;
             double cutSample;
             cin >> n1 >> cutSample;
             LPF(n1, cutSample);
             break;
-        case 9:
+        case 10:
             cout << "Enter filterOrder and cutoffFrequency value:" << endl;
             int n2;
             double cutSample2;
             cin >> n2 >> cutSample2;
             HPF(n2, cutSample2);
             break;
-        case 10:
+        case 11:
             cout << "Enter filterOrder, cutoffFrequency1 and cutoffFrequency1 value:" << endl;
             int n3;
             double cutSample31;
@@ -770,7 +812,7 @@ int main() {
             cin >> n3>> cutSample31 >> cutSample32;
             BSF(n3, cutSample31, cutSample32);
             break;
-        case 11:
+        case 12:
             cout << "Enter filterOrder, cutoffFrequency1 and cutoffFrequency1 value:" << endl;
             int n4;
             double cutSample41;
@@ -778,33 +820,33 @@ int main() {
             cin >> n4 >> cutSample41 >> cutSample42;
             BPF(n4, cutSample41, cutSample42);
             break;
-        case 12:
+        case 13:
             cout << "Enter delay and decay value:" << endl;
             int dl;
             double dc;
             cin >> dl >> dc;
             echoEffect(dl, dc);
             break;
-        case 13:
+        case 14:
             cout << "Enter delay and decay value:" << endl;
             int dl1;
             double dc1;
             cin >> dl1 >> dc1;
             reverbEffect(dl1, dc1);
             break;
-        case 14:
+        case 15:
             cout << "Enter duration value:" << endl;
             int duration;
             cin >> duration;
             fadeIn(duration);
             break;
-        case 15:
+        case 16:
             cout << "Enter duration value:" << endl;
             int duration1;
             cin >> duration1;
             fadeOut(duration1);
             break;
-        case 16:
+        case 17:
             break;
         default:
             break;
