@@ -40,7 +40,7 @@ struct WAVHeader {
 };
 
 void readFile() {
-    const char* filename = "lol3.wav"; // Đường dẫn tới file WAV của bạn
+    const char* filename = "original.wav"; // Đường dẫn tới file WAV của bạn
     std::ifstream file(filename, std::ios::binary);
 
     if (!file) {
@@ -59,7 +59,7 @@ void readFile() {
     nChannels = header.numChannels;
     bPerSample = header.bitsPerSample;
     // In thông tin từ header
-    cout << "______________READCURRENTFILE________________" << endl;
+    cout << "______________" << filename << "________________" << endl;
     std::cout << "Number of channels: " << header.numChannels << std::endl;
     std::cout << "Sample rate: " << header.sampleRate << " Hz" << std::endl;
     std::cout << "Bits per sample: " << header.bitsPerSample << " bits" << std::endl;
@@ -76,8 +76,8 @@ void readFile() {
     //test
     cout << endl;
     cout << "---------------------------------------------" << endl;
+    cout << "Drawing..." << endl;
     std::cout << "Press ENTER to select MENU" << endl;
-    cout << "---------------------------------------------" << endl;
 
     gp << "plot '-' with lines" << endl;
     gp.send(points);
@@ -85,7 +85,7 @@ void readFile() {
 }
 
 void readFile2() {
-    const char* filename = "fntest2.wav"; // Đường dẫn tới file WAV của bạn
+    const char* filename = "original2.wav"; // Đường dẫn tới file WAV của bạn
     std::ifstream file(filename, std::ios::binary);
 
     if (!file) {
@@ -99,13 +99,7 @@ void readFile2() {
     if (std::string(header.chunkID, 4) != "RIFF" || std::string(header.format, 4) != "WAVE") {
         std::cerr << "Error: Unsupported WAV format" << std::endl;
     }
-    // In thông tin từ header
-    cout << "______________READCURRENTFILE________________" << endl;
-    std::cout << "Number of channels: " << header.numChannels << std::endl;
-    std::cout << "Sample rate: " << header.sampleRate << " Hz" << std::endl;
-    std::cout << "Bits per sample: " << header.bitsPerSample << " bits" << std::endl;
-    std::cout << "Duration: " << (double)header.subchunk2Size / (header.sampleRate * header.numChannels * header.bitsPerSample / 8) << " seconds" << std::endl;
-    cout << "_____________________________________________" << endl;
+    
     // Đọc dữ liệu âm thanh từ subchunk thứ hai của file WAV
     std::vector<int16_t> samples(header.subchunk2Size / sizeof(int16_t));
     file.read(reinterpret_cast<char*>(samples.data()), header.subchunk2Size);
@@ -322,6 +316,12 @@ void timeShift(int n) {
                 tempPoints[i].first = vl;
                 vl++;
             }
+            vector<int16_t> writeVec;
+            for (int i = 0; i < tempPoints.size(); i++) {
+                writeVec.push_back(static_cast<int16_t>(tempPoints[i].second));
+            }
+            writeFile("Timeshift.wav", writeVec, sRate, nChannels, bPerSample);
+            points.clear();
             points.clear();
             points = tempPoints;
             gp << "plot '-' with lines" << endl;
@@ -342,7 +342,12 @@ void downSample(int n) {
     for (int i = pos + n; i < points.size(); i += n) {
         tempPoints.push_back(make_pair(points[i].first / n, points[i].second));
     }
-
+    vector<int16_t> writeVec;
+    for (int i = 0; i < tempPoints.size(); i++) {
+        writeVec.push_back(static_cast<int16_t>(tempPoints[i].second));
+    }
+    writeFile("Downsample.wav", writeVec, sRate, nChannels, bPerSample);
+    points.clear();
     points.clear();
     points = tempPoints;
 
@@ -371,7 +376,12 @@ void upSample(int n) {
             }
             tempPoints.push_back(make_pair(i * n, points[pos + i].second));
         }
-
+        vector<int16_t> writeVec;
+        for (int i = 0; i < tempPoints.size(); i++) {
+            writeVec.push_back(static_cast<int16_t>(tempPoints[i].second));
+        }
+        writeFile("Upsample.wav", writeVec, sRate, nChannels, bPerSample);
+        points.clear();
         gp << "plot '-' with lines" << endl;
         gp.send(tempPoints);
         cin.get();
@@ -385,7 +395,12 @@ void upSample(int n) {
             }
             tempPoints.push_back(make_pair(i * n, points[pos + i].second));
         }
-
+        vector<int16_t> writeVec;
+        for (int i = 0; i < tempPoints.size(); i++) {
+            writeVec.push_back(static_cast<int16_t>(tempPoints[i].second));
+        }
+        writeFile("Upsample.wav", writeVec, sRate, nChannels, bPerSample);
+        points.clear();
         gp << "plot '-' with lines" << endl;
         gp.send(tempPoints);
         cin.get();
@@ -398,6 +413,12 @@ void sum(vector<pair<int, double>> vector1, vector<pair<int, double>> vector2) {
     for (int i = 0; i < currentPointsAfterFormat.size(); i++) {
         points3.push_back(make_pair(currentPointsAfterFormat[i].first, currentPointsAfterFormat[i].second + pointsToMathAfterFormat[i].second));
     }
+    vector<int16_t> writeVec;
+    for (int i = 0; i < points3.size(); i++) {
+        writeVec.push_back(static_cast<int16_t>(points3[i].second));
+    }
+    writeFile("Sum.wav", writeVec, sRate, nChannels, bPerSample);
+    points.clear();
     gp << "plot '-' with lines" << endl;
     gp.send(points3);
     cin.get();
@@ -408,12 +429,18 @@ void times(vector<pair<int, double>> vector1, vector<pair<int, double>> vector2)
     for (int i = 0; i < currentPointsAfterFormat.size(); i++) {
         points3.push_back(make_pair(currentPointsAfterFormat[i].first, currentPointsAfterFormat[i].second * pointsToMathAfterFormat[i].second));
     }
+    vector<int16_t> writeVec;
+    for (int i = 0; i < points3.size(); i++) {
+        writeVec.push_back(static_cast<int16_t>(points3[i].second));
+    }
+    writeFile("Times.wav", writeVec, sRate, nChannels, bPerSample);
+    points.clear();
     gp << "plot '-' with lines" << endl;
     gp.send(points3);
     cin.get();
 }
 
-void lowBandPass(int n, double cutSample) {
+void LPF(int n, double cutSample) {
     tempPoints.clear();
 
     vector <double> filter;
@@ -442,9 +469,9 @@ void lowBandPass(int n, double cutSample) {
     cin.get();
 }
 
-void highBandPass(int n, double cutSample) {
+void HPF(int n, double cutSample) {
     tempPoints.clear();
-    vector<pair<int, double>> filter;
+    vector <double> filter;
     for (int i = 0; i < n; i++) {
         double wc = 2 * 3.1416 * cutSample / samplingFrequency;
         double omg;
@@ -455,59 +482,60 @@ void highBandPass(int n, double cutSample) {
             omg = 0;
         }
         double h = omg - ((wc / 3.1416) * ((sin(wc * (i - (n - 1) / 2))) / (wc * (i - (n - 1) / 2))));
-        filter.push_back(make_pair(i, h));
+        filter.push_back(h);
     }
-    vector<pair<int, double>> op(points.size());
-    for (int i = 0; i < points.size(); i++) {
-        double sum = 0.0;
-        int minIndex = min(i, static_cast<int>(filter.size()) - 1);
-        for (int j = 0; j <= minIndex; j++) {
-            sum += points[i - j].second * filter[j].second;
-        }
-        op[i] = make_pair(i, sum);
-    }
-    tempPoints = op;
 
+    vector <double> op(points.size() + filter.size() - 1, 0);
+    for (int i = 0; i < filter.size(); i++) {
+        for (int j = 0; j < points.size(); j++) {
+            op[i + j] += filter[i] * points[j].second;
+        }
+    }
+    vector<int16_t> writeVec;
+    for (int i = 0; i < op.size(); i++) {
+        writeVec.push_back(static_cast<int16_t>(op[i]));
+    }
+    writeFile("HPF.wav", writeVec, sRate, nChannels, bPerSample);
     points.clear();
     points = tempPoints;
 
     gp << "plot '-' with lines" << endl;
-    gp.send(tempPoints);
+    gp.send(op);
     cin.get();
 }
 
-void bandPass(int n, double cutSample1, double cutSample2) {
+void BPF(int n, double cutSample1, double cutSample2) {
     tempPoints.clear();
-    vector<pair<int, double>> filter;
+    vector <double> filter;
     for (int i = 0; i < n; i++) {
         double wc1 = 2 * 3.1416 * cutSample1 / samplingFrequency;
         double wc2 = 2 * 3.1416 * cutSample2 / samplingFrequency;
         double h  = (wc2 / 3.1416) * ((sin(wc2 * (i - (n - 1) / 2))) / (wc2 * (i - (n - 1) / 2))) - (wc1 / 3.1416) * ((sin(wc1 * (i - (n - 1) / 2))) / (wc1 * (i - (n - 1) / 2)));
-        filter.push_back(make_pair(i, h));
+        filter.push_back(h);
     }
-    vector<pair<int, double>> op(points.size());
-    for (int i = 0; i < points.size(); i++) {
-        double sum = 0.0;
-        int minIndex = min(i, static_cast<int>(filter.size()) - 1);
-        for (int j = 0; j <= minIndex; j++) {
-            sum += points[i - j].second * filter[j].second;
+    vector <double> op(points.size() + filter.size() - 1, 0);
+    for (int i = 0; i < filter.size(); i++) {
+        for (int j = 0; j < points.size(); j++) {
+            op[i + j] += filter[i] * points[j].second;
         }
-        op[i] = make_pair(i, sum);
     }
-   
-    tempPoints = op;
+    vector<int16_t> writeVec;
+    for (int i = 0; i < op.size(); i++) {
+        writeVec.push_back(static_cast<int16_t>(op[i]));
+    }
+    writeFile("BPF.wav", writeVec, sRate, nChannels, bPerSample);
 
     points.clear();
     points = tempPoints;
 
     gp << "plot '-' with lines" << endl;
-    gp.send(tempPoints);
+    gp.send(op);
     cin.get();
 }
 
-void bandStop(int n, double cutSample1, double cutSample2) {
+void BSF(int n, double cutSample1, double cutSample2) {
     tempPoints.clear();
-    vector<pair<int, double>> filter;
+    vector <double> filter;
     for (int i = 0; i < n; i++) {
         double wc1 = 2 * 3.1416 * cutSample1 / samplingFrequency;
         double wc2 = 2 * 3.1416 * cutSample2 / samplingFrequency;
@@ -519,24 +547,25 @@ void bandStop(int n, double cutSample1, double cutSample2) {
             omg = 0;
         }
         double h = omg - ((wc2 / 3.1416) * ((sin(wc2 * (i - (n - 1) / 2))) / (wc2 * (i - (n - 1) / 2))) - (wc1 / 3.1416) * ((sin(wc1 * (i - (n - 1) / 2))) / (wc1 * (i - (n - 1) / 2))));
-        filter.push_back(make_pair(i, h));
+        filter.push_back(h);
     }
-    vector<pair<int, double>> op(points.size());
-    for (int i = 0; i < points.size(); i++) {
-        double sum = 0.0;
-        int minIndex = min(i, static_cast<int>(filter.size()) - 1);
-        for (int j = 0; j <= minIndex; j++) {
-            sum += points[i - j].second * filter[j].second;
+    vector <double> op(points.size() + filter.size() - 1, 0);
+    for (int i = 0; i < filter.size(); i++) {
+        for (int j = 0; j < points.size(); j++) {
+            op[i + j] += filter[i] * points[j].second;
         }
-        op[i] = make_pair(i, sum);
     }
-    tempPoints = op;
+    vector<int16_t> writeVec;
+    for (int i = 0; i < op.size(); i++) {
+        writeVec.push_back(static_cast<int16_t>(op[i]));
+    }
+    writeFile("BSF.wav", writeVec, sRate, nChannels, bPerSample);
 
     points.clear();
     points = tempPoints;
 
     gp << "plot '-' with lines" << endl;
-    gp.send(tempPoints);
+    gp.send(op);
     cin.get();
 }
 
@@ -560,7 +589,11 @@ void echoEffect(int delaySamples, double decayFactor) {
     tempPoints.clear();
     tempPoints = tempAudio;
     points = tempPoints;
-
+    vector<int16_t> writeVec;
+    for (int i = 0; i < tempPoints.size(); i++) {
+        writeVec.push_back(static_cast<int16_t>(tempPoints[i].second));
+    }
+    writeFile("Echo.wav", writeVec, sRate, nChannels, bPerSample);
     gp << "plot '-' with lines" << endl;
     gp.send(tempPoints);
     cin.get();
@@ -593,7 +626,11 @@ void reverbEffect(int delaySamples, double decayFactor) {
     tempPoints.clear();
     tempPoints = tempAudio;
     points = tempPoints;
-
+    vector<int16_t> writeVec;
+    for (int i = 0; i < tempPoints.size(); i++) {
+        writeVec.push_back(static_cast<int16_t>(tempPoints[i].second));
+    }
+    writeFile("Reverb.wav", writeVec, sRate, nChannels, bPerSample);
     gp << "plot '-' with lines" << endl;
     gp.send(tempPoints);
     cin.get();
@@ -601,25 +638,23 @@ void reverbEffect(int delaySamples, double decayFactor) {
 
 void fadeIn(int fadeInDuration) {
     tempPoints.clear();
-
     // Xác định số lượng mẫu âm thanh
     int numSamples = points.size();
 
     // Nếu khoảng thời gian fade in lớn hơn số lượng mẫu, chỉnh lại để tránh truy cập ngoài phạm vi
     fadeInDuration = min(fadeInDuration, numSamples);
 
-    double maxVolume = points[fadeInDuration - 1].second;
-
-    // Copy dữ liệu từ points sang tempPoints
     tempPoints = points;
-
-    // Duyệt qua các mẫu âm thanh và tăng dần âm lượng từ 0 lên giá trị tối đa trong khoảng thời gian fadeInDuration
+    // Duyệt qua các mẫu âm thanh và tăng dần âm lượng từ giá trị ban đầu lên giá trị tối đa
     for (int i = 0; i < fadeInDuration; ++i) {
-        double ratio = (double)i / (fadeInDuration - 1);
-        if(tempPoints[i].second != 0 || tempPoints[i].second >= ratio * maxVolume ) tempPoints[i].second = ratio * maxVolume;
-     
+        double ratio = static_cast<double>(i) / fadeInDuration;
+        tempPoints[i].second *= ratio;
     }
-
+    vector<int16_t> writeVec;
+    for (int i = 0; i < tempPoints.size(); i++) {
+        writeVec.push_back(static_cast<int16_t>(tempPoints[i].second));
+    }
+    writeFile("FadeIn.wav", writeVec, sRate, nChannels, bPerSample);
     points.clear();
     points = tempPoints;
 
@@ -634,18 +669,18 @@ void fadeOut(int fadeOutDuration) {
     int numSamples = points.size();
     fadeOutDuration = min(numSamples, fadeOutDuration);
 
-    double maxVolume = points[numSamples - fadeOutDuration - 1].second;
-
     tempPoints = points;
 
     for (int i = numSamples - fadeOutDuration; i < tempPoints.size(); i++) {
-        double ratio = static_cast<double>(i - (numSamples - fadeOutDuration)) / (fadeOutDuration - 1);
-        ratio = 1 - ratio;
-        cout << ratio << " ";
-        if (tempPoints[i].second != 0) tempPoints[i].second = maxVolume * ratio;
+        double ratio = static_cast<double>(numSamples - i) / fadeOutDuration;
+        tempPoints[i].second *= ratio;
     }
     tempPoints[tempPoints.size() - 1].second = 0;
-
+    vector<int16_t> writeVec;
+    for (int i = 0; i < tempPoints.size(); i++) {
+        writeVec.push_back(static_cast<int16_t>(tempPoints[i].second));
+    }
+    writeFile("FadeOut.wav", writeVec, sRate, nChannels, bPerSample);
     points.clear();
     points = tempPoints;
 
@@ -654,12 +689,11 @@ void fadeOut(int fadeOutDuration) {
     cin.get();
 }
 
-
 int main() {
     readFile();
     readFile2();
     while (true) {
-        std::cout << "_________________________MINI_PROJECT_____________________\n";
+        std::cout << "_________________________MINI PROJECT 1_____________________\n";
         std::cout << "              1. Original wav\n";
         std::cout << "              2. Time reverse\n";
         std::cout << "              3. Timeshift\n";
@@ -675,8 +709,7 @@ int main() {
         std::cout << "              13. Reverb\n";
         std::cout << "              14. Fade in\n";
         std::cout << "              15. Fade out\n";
-        std::cout << "              16. Flangler\n";
-        std::cout << "              17. Quit\n";
+        std::cout << "              16. Quit\n";
         std::cout << "__________________________________________________________\n";
         std::cout << "Select: ";
 
@@ -692,7 +725,7 @@ int main() {
             reverseFile();
             break;
         case 3:
-            cout << "Enter time shift index" << endl;
+            cout << "Enter time shift sample:" << endl;
             int n;
             cin >> n;
             timeShift(n);
@@ -716,57 +749,57 @@ int main() {
             times(points, points2);
             break;
         case 8:
-            cout << "Enter value:" << endl;
+            cout << "Enter filterOrder and cutoffFrequency value:" << endl;
             int n1;
             double cutSample;
             cin >> n1 >> cutSample;
-            lowBandPass(n1, cutSample);
+            LPF(n1, cutSample);
             break;
         case 9:
-            cout << "Enter value:" << endl;
+            cout << "Enter filterOrder and cutoffFrequency value:" << endl;
             int n2;
             double cutSample2;
             cin >> n2 >> cutSample2;
-            lowBandPass(n2, cutSample2);
+            HPF(n2, cutSample2);
             break;
         case 10:
-            cout << "Enter value:" << endl;
+            cout << "Enter filterOrder, cutoffFrequency1 and cutoffFrequency1 value:" << endl;
             int n3;
             double cutSample31;
             double cutSample32;
             cin >> n3>> cutSample31 >> cutSample32;
-            bandStop(n3, cutSample31, cutSample32);
+            BSF(n3, cutSample31, cutSample32);
             break;
         case 11:
-            cout << "Enter value:" << endl;
+            cout << "Enter filterOrder, cutoffFrequency1 and cutoffFrequency1 value:" << endl;
             int n4;
             double cutSample41;
             double cutSample42;
             cin >> n4 >> cutSample41 >> cutSample42;
-            bandPass(n4, cutSample41, cutSample42);
+            BPF(n4, cutSample41, cutSample42);
             break;
         case 12:
-            cout << "Enter value:" << endl;
+            cout << "Enter delay and decay value:" << endl;
             int dl;
             double dc;
             cin >> dl >> dc;
             echoEffect(dl, dc);
             break;
         case 13:
-            cout << "Enter value:" << endl;
+            cout << "Enter delay and decay value:" << endl;
             int dl1;
             double dc1;
             cin >> dl1 >> dc1;
             reverbEffect(dl1, dc1);
             break;
         case 14:
-            cout << "Enter value:" << endl;
+            cout << "Enter duration value:" << endl;
             int duration;
             cin >> duration;
             fadeIn(duration);
             break;
         case 15:
-            cout << "Enter value:" << endl;
+            cout << "Enter duration value:" << endl;
             int duration1;
             cin >> duration1;
             fadeOut(duration1);
